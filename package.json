@@ -1,0 +1,46 @@
+{
+  "name": "sor-phase2-poc",
+  "version": "1.0.0",
+  "description": "SOR Phase 2 POC - Yen's K-Shortest Paths Algorithm with real pool data",
+  "main": "yens-algorithm-poc.js",
+  "scripts": {
+    "analyze": "node analyze-pools.js",
+    "test:limits": "node test-phase1-limits.js",
+    "benchmark": "node benchmark.js",
+    "benchmark:apt-usdt": "node benchmark.js APT USDT 10000",
+    "benchmark:apt-usdc": "node benchmark.js APT USDC 10000",
+    "benchmark:large": "node benchmark.js APT USDT 100000",
+    "benchmark:3hops": "node benchmark.js APT USDT 10000 --max-hops=3",
+    "phase1": "node phase1-dfs-poc.js",
+    "phase1:apt-usdt": "node phase1-dfs-poc.js APT USDT 10000",
+    "phase1:3hops": "node phase1-dfs-poc.js USDT USDC 10000 --max-hops=3",
+    "poc": "node yens-algorithm-poc.js",
+    "poc:apt-usdt": "node yens-algorithm-poc.js APT USDT 10000 --k=5",
+    "poc:apt-usdc": "node yens-algorithm-poc.js APT USDC 10000 --k=5",
+    "poc:apt-usdc-large": "node yens-algorithm-poc.js APT USDC 100000 --k=10",
+    "poc:apt-usdc-small": "node yens-algorithm-poc.js APT USDC 100 --k=5",
+    "poc:eth-usdc": "node yens-algorithm-poc.js ETH USDC 100 --k=5",
+    "poc:verbose": "node yens-algorithm-poc.js APT USDT 10000 --k=5 --verbose",
+    "poc:k10": "node yens-algorithm-poc.js APT USDT 10000 --k=10",
+    "poc:max-hops-2": "node yens-algorithm-poc.js APT USDT 10000 --k=5 --max-hops=2",
+    "poc:max-hops-5": "node yens-algorithm-poc.js APT USDT 10000 --k=5 --max-hops=5"
+  },
+  "keywords": [
+    "sor",
+    "smart-order-routing",
+    "yens-algorithm",
+    "dijkstra",
+    "route-splitting",
+    "dex",
+    "amm"
+  ],
+  "author": "TAPP Backend Team",
+  "license": "MIT",
+  "dependencies": {
+    "pg": "^8.16.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
+
