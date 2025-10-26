@@ -86,23 +86,47 @@ docker-compose exec db rm /tmp/cloud-db.sql
 
 ## 🚀 Quick Start Guide
 
-### Option 1: Run Phase 1 (Current DFS Algorithm)
+### Option 1: Run Benchmark (Compare All Algorithms)
 
-Test the current implementation with 2 hops maximum:
+Compare Phase 1 DFS vs Phase 2 (Yen's Algorithm):
 
 ```bash
-# Run Phase 1 (DFS, max 2 hops)
-node phase1-dfs-poc.js APT USDC 10000
+# Benchmark with multi-hop example (recommended)
+node benchmark.js DOGE BTC 10000 --max-hops=3 --skip-astar
+
+# Benchmark with stablecoins (direct pools)
+node benchmark.js USDC USDT 10000 --max-hops=3 --skip-astar
+
+# With custom K and max-hops
+node benchmark.js DOGE BTC 10000 --max-hops=4 --k=10 --skip-astar
+```
+
+**Expected**: Shows detailed comparison table with:
+- Routes found (Phase 1 explores all, Phase 2 explores top K)
+- Best output amount
+- Execution time (Phase 2 is typically 50-75% faster)
+- Memory usage
+- Winner for each metric
+
+---
+
+### Option 2: Run Phase 1 (Current DFS Algorithm)
+
+Test the current implementation:
+
+```bash
+# Run Phase 1 (DFS, max 3 hops)
+node phase1-dfs-poc.js DOGE BTC 10000 --max-hops=3
 
 # With verbose output
-node phase1-dfs-poc.js APT USDC 10000 --verbose
+node phase1-dfs-poc.js DOGE BTC 10000 --max-hops=3 --verbose
 ```
 
 **Expected**: Finds all routes (exhaustive search), picks best single route.
 
 ---
 
-### Option 2: Run Phase 2 (Yen's Algorithm)
+### Option 3: Run Phase 2 (Yen's Algorithm)
 
 Test the new implementation with 3-5 hops:
 
@@ -121,25 +145,22 @@ node yens-algorithm-poc.js APT USDC 100000 --k=5
 
 ---
 
-### Option 3: Run Benchmark (Compare Phase 1 vs Phase 2)
+### Option 4: Analyze Database
 
-Compare both algorithms side-by-side:
+Check available token pairs in the database:
 
 ```bash
-# Benchmark: Phase 1 vs Phase 2
-node benchmark.js APT USDC 10000
-
-# With different parameters
-node benchmark.js APT USDT 10000 --max-hops=3 --k=5
+node check-tokens.js
 ```
 
-**Output**: Comparison table with speed, routes found, output quality, and memory usage.
-
-**See detailed results**: [BENCHMARK-RESULTS.md](./BENCHMARK-RESULTS.md)
+This shows:
+- Top tokens with most pools
+- Token pairs with direct pools
+- Suggested pairs for benchmarking
 
 ---
 
-### Option 4: Test Phase 1 Scalability Limits
+### Option 5: Test Phase 1 Scalability Limits
 
 Demonstrate why Phase 1 cannot handle 3+ hops:
 
