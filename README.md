@@ -17,26 +17,69 @@ Proof of Concept implementation for Smart Order Routing Phase 2 using real pool 
 
 ## 📦 Prerequisites
 
-### 1. Database Running
+### 1. Setup Environment Variables
+
+Copy the example environment file:
 
 ```bash
-# Make sure PostgreSQL is running with TAPP database
-# (Assumes you have TAPP database setup locally or via Docker)
-docker-compose up -d db
-
-# Verify
-docker-compose ps db
+cp .env.example .env
 ```
 
-### 2. Seed Pool Data (if empty)
-- Convert db backup from development Cloud SQL to competible with pg
+Edit `.env` if needed (default values are fine for local development).
 
+### 2. Start PostgreSQL Database
+
+The database will automatically restore from `backup/cloud-db.sql` on first initialization:
+
+```bash
+docker-compose up -d db
+```
+
+Verify the database is running:
+
+```bash
+# Check container status
+docker-compose ps
+
+# View logs
+docker-compose logs -f db
+
+# Test connection
+docker-compose exec db psql -U tapp -d tapp -c "SELECT COUNT(*) FROM pools;"
+```
+
+**Connection Info:**
+- Host: localhost
+- Port: 5433
+- Database: tapp
+- User: tapp
+- Password: tapp
+
+> **Note**: Port 5433 is used to avoid conflict with local PostgreSQL on port 5432. Edit `.env` to change the port if needed.
 
 ### 3. Install Dependencies
 
 ```bash
-
 npm install
+```
+
+---
+
+### Troubleshooting Database
+
+**Reset database (⚠️ deletes all data):**
+
+```bash
+docker-compose down -v
+docker-compose up -d db
+```
+
+**Manually restore database:**
+
+```bash
+docker cp ./backup/cloud-db.sql tapp-postgres:/tmp/cloud-db.sql
+docker-compose exec db psql -U tapp -d tapp -f /tmp/cloud-db.sql
+docker-compose exec db rm /tmp/cloud-db.sql
 ```
 
 ---
