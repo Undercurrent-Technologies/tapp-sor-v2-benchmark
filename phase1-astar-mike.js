@@ -239,9 +239,12 @@ function bitsetAdd(bitset, idx) {
 // A* Heuristic: Reverse Dijkstra from Target
 // ============================================================================
 
+const MAX_NODES = 10000; // Limit number of nodes explored in reverse Dijkstra
+const MAX_ITERATIONS = 10000; // Limit iterations to prevent infinite loops
+
 const heuristicCache = new Map();
 
-function computeReverseHeuristic(adj, targetAddr, gasPerHopPenalty = 0) {
+function computeReverseHeuristic(adj, targetAddr, gasPerHopPenalty = 0, sourceTokenAddr = null) {
   const cacheKey = `${targetAddr}:${gasPerHopPenalty.toFixed(6)}`;
   
   if (heuristicCache.has(cacheKey)) {
@@ -251,6 +254,7 @@ function computeReverseHeuristic(adj, targetAddr, gasPerHopPenalty = 0) {
   
   const reverseAdj = new Map();
   
+  // Build reverse adjacency map
   for (const [from, edges] of adj) {
     for (const edge of edges) {
       const arr = reverseAdj.get(edge.to) || [];
@@ -268,10 +272,16 @@ function computeReverseHeuristic(adj, targetAddr, gasPerHopPenalty = 0) {
   dist.set(targetAddr, 0);
   pq.push({ node: targetAddr, dist: 0 });
   
-  while (pq.size() > 0) {
+  let iterations = 0;
+  let nodesExplored = 0;
+  
+  while (pq.size() > 0 && nodesExplored < MAX_NODES && iterations < MAX_ITERATIONS) {
     const { node, dist: d } = pq.pop();
     
     if (d > dist.get(node)) continue;
+    
+    nodesExplored++;
+    iterations++;
     
     const edges = reverseAdj.get(node) || [];
     for (const edge of edges) {
@@ -283,6 +293,25 @@ function computeReverseHeuristic(adj, targetAddr, gasPerHopPenalty = 0) {
         pq.push({ node: edge.to, dist: newDist });
       }
     }
+  }
+  
+  if (verbose) {
+    console.log(`✅ Computed heuristic for ${dist.size} nodes (${nodesExplored} nodes explored, ${iterations} iterations)`);
+    if (sourceTokenAddr) {
+      const sourceH = dist.get(sourceTokenAddr) ?? Infinity;
+      console.log(`Source ID: ${sourceTokenAddr}, Heuristic: ${sourceH === Infinity ? 'Infinity' : sourceH.toFixed(4)}`);
+    }
+    const targetH = dist.get(targetAddr) ?? Infinity;
+    console.log(`Target ID: ${targetAddr}, Heuristic: ${targetH === Infinity ? 'Infinity' : targetH.toFixed(4)}`);
+  }
+  
+  // Check if source has valid heuristic
+  if (sourceTokenAddr && !dist.has(sourceTokenAddr)) {
+    console.log(`⚠️  Warning: Heuristic is Infinity. Falling back to uniform heuristic (0).`);
+  }
+  
+  if (verbose) {
+    console.log(`Heuristic map size: ${dist.size} nodes`);
   }
   
   heuristicCache.set(cacheKey, dist);
@@ -444,8 +473,9 @@ function buildNumericAdjacency(adj, tokenToId) {
 // ============================================================================
 
 function findTopKRoutesAStar(adjId, heuristicId, tokenToId, idToAddr, tokenInAddr, tokenOutAddr, maxHops, topK = 40, beamWidth = 32, gasPerHopPenalty = 0) {
-  if (verbose) console.log(`🔍 Phase 1 A* Search: Finding top ${topK} routes (max ${maxHops} hops, beam ${beamWidth})...`);
-  if (verbose) console.time('SEARCH_TIME');
+  const ASTAR_MAX_ITERATIONS = 50000; // Limit A* search iterations
+  
+  if (verbose) console.log(`A* search starting (max ${ASTAR_MAX_ITERATIONS} iterations)...`);
   
   if (tokenInAddr === tokenOutAddr) {
     if (verbose) console.log('⚠️  Source and target are the same token\n');
@@ -462,7 +492,8 @@ function findTopKRoutesAStar(adjId, heuristicId, tokenToId, idToAddr, tokenInAdd
   const frontierHeap = new MaxHeap((a, b) => a.prio - b.prio);
   
   const sourceH = heuristicId.get(sourceId) ?? Infinity;
-  const sourcePrio = 0 - sourceH - gasPerHopPenalty * maxHops;
+  const effectiveH = sourceH === Infinity ? 0 : sourceH;
+  const sourcePrio = 0 - effectiveH - gasPerHopPenalty * maxHops;
   
   frontierHeap.push({
     nodeId: sourceId,
@@ -479,6 +510,7 @@ function findTopKRoutesAStar(adjId, heuristicId, tokenToId, idToAddr, tokenInAdd
   let nodesPruned = 0;
   let frontierMinPrio = Infinity;
   let frontierMaxPrio = -Infinity;
+  let iterationCount = 0;
   
   const nodePool = [];
   const maxPoolSize = 1000;
@@ -504,7 +536,8 @@ function findTopKRoutesAStar(adjId, heuristicId, tokenToId, idToAddr, tokenInAdd
     return path;
   }
   
-  while (frontierHeap.size() > 0) {
+  while (frontierHeap.size() > 0 && iterationCount < ASTAR_MAX_ITERATIONS) {
+    iterationCount++;
     const topFrontier = frontierHeap.peek();
     if (candidatesHeap.size() >= topK && topFrontier.prio <= kthScore) {
       if (verbose) console.log(`🚀 Early termination: frontier best prio (${topFrontier.prio.toFixed(4)}) ≤ kthScore (${kthScore.toFixed(4)})`);
@@ -574,6 +607,10 @@ function findTopKRoutesAStar(adjId, heuristicId, tokenToId, idToAddr, tokenInAdd
           if (seenRoutes.has(routeKey)) continue;
           seenRoutes.add(routeKey);
           
+          if (verbose) {
+            console.log(`   ✅ Found route #${candidatesHeap.size() + 1}, score: ${newScore.toFixed(4)}, hops: ${route.length}`);
+          }
+          
           if (candidatesHeap.size() < topK) {
             candidatesHeap.push({ route, score: newScore });
             if (candidatesHeap.size() === topK) {
@@ -612,14 +649,12 @@ function findTopKRoutesAStar(adjId, heuristicId, tokenToId, idToAddr, tokenInAdd
   }
   
   if (verbose) {
-    console.log(`\n📊 A* Search Statistics:`);
+    console.log(`\n✅ Found ${candidatesHeap.size()} routes`);
+    console.log(`📊 A* Search Statistics:`);
     console.log(`  Frontier priority range: [${frontierMinPrio.toFixed(4)}, ${frontierMaxPrio.toFixed(4)}]`);
     console.log(`  K-th best score: ${kthScore.toFixed(4)}`);
     console.log(`  Pruning effectiveness: ${(nodesPruned / Math.max(1, nodesExplored + nodesPruned) * 100).toFixed(1)}%`);
   }
-  
-  if (verbose) console.timeEnd('SEARCH_TIME');
-  if (verbose) console.log(`✅ Found ${candidatesHeap.size()} routes (explored: ${nodesExplored}, pruned: ${nodesPruned})\n`);
   
   return candidatesHeap.toSortedArray().map(c => c.route);
 }
@@ -710,29 +745,22 @@ function displayPhase1Result(routes, bestResult, amount, tokenMap) {
   console.log('='.repeat(80));
   console.log();
   
-  console.log(`Total routes found: ${routes.length}`);
-  console.log(`Routes by hop count:`);
-  
-  const hopCounts = {};
-  for (const route of routes) {
-    const hops = route.length;
-    hopCounts[hops] = (hopCounts[hops] || 0) + 1;
-  }
-  
-  for (const [hops, count] of Object.entries(hopCounts).sort()) {
-    console.log(`  ${hops} hop${hops > 1 ? 's' : ''}: ${count} routes`);
-  }
-  console.log();
-  
-  console.log(`Best Route:`);
-  console.log(`  Path: ${formatRoute(bestResult.route, tokenMap)}`);
-  console.log(`  Hops: ${bestResult.route?.length || 0}`);
-  console.log(`  Input: ${amount.toFixed(2)}`);
-  console.log(`  Output: ${bestResult.output.toFixed(2)}`);
+  console.log(`Results:`);
+  console.log(`  Routes found: ${routes.length}`);
+  console.log(`  Best output: ${bestResult.output.toFixed(2)}`);
   
   const priceImpact = ((amount - bestResult.output) / amount) * 100;
   console.log(`  Price Impact: ${priceImpact.toFixed(2)}%`);
   console.log();
+  
+  if (routes.length > 0) {
+    console.log(`Best Route Details:`);
+    console.log(`  Path: ${formatRoute(bestResult.route, tokenMap)}`);
+    console.log(`  Hops: ${bestResult.route?.length || 0}`);
+    console.log(`  Input: ${amount.toFixed(2)}`);
+    console.log(`  Output: ${bestResult.output.toFixed(2)}`);
+    console.log();
+  }
 }
 
 // ============================================================================
@@ -805,7 +833,7 @@ async function main() {
     if (verbose) console.log(`🔧 Gas per hop: $${gasPerHopUSD} → ${gasPerHopInOutputTokens.toFixed(4)} ${targetToken.symbol} → penalty ${gasPerHopPenalty.toFixed(6)}`);
     
     if (verbose) console.log('🔧 Computing A* heuristic (reverse Dijkstra from target)...');
-    const heuristic = computeReverseHeuristic(adj, targetToken.addr, gasPerHopPenalty);
+    const heuristic = computeReverseHeuristic(adj, targetToken.addr, gasPerHopPenalty, sourceToken.addr);
     const heuristicId = mapHeuristicToIds(heuristic, tokenToId);
     
     if (verbose) console.timeEnd('PREPROCESSING_TIME');

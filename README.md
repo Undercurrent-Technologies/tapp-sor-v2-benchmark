@@ -10,8 +10,13 @@ Proof of Concept implementation for Smart Order Routing Phase 2 using real pool 
 2. **Builds liquidity graph** from pools (tokens = nodes, pools = edges)
 3. **Implements Dijkstra's algorithm** to find shortest paths
 4. **Implements Yen's K-Shortest Paths** to find top K alternative routes
-5. **Optimizes route splitting** using marginal analysis
-6. **Compares Phase 1 vs Phase 2** performance
+5. **Implements A* Search** with target-aware heuristic (limited effectiveness)
+6. **Optimizes route splitting** using marginal analysis
+7. **Compares all algorithms** (DFS, A*, Yen's) in benchmark
+
+> 📝 **See A* investigations:**
+> - [POC-1: Phase 1 Mike Implementation](./docs/POC-1-ASTAR-PHASE1-MIKE-INVESTIGATION.md) - Bug analysis (finds 0 routes)
+> - [POC-2: Fixed POC Version](./docs/POC-2-ASTAR-ALGORITHM-INVESTIGATION.md) - Working but limited (finds 1 route)
 
 ---
 
