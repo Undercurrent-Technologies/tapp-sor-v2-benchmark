@@ -7,14 +7,15 @@
  * Shows exponential growth in routes found
  */
 
+require('dotenv').config();
 const { Client } = require('pg');
 
 const dbConfig = {
-  host: 'localhost',
-  port: 5432,
-  database: 'tapp',
-  user: 'tapp',
-  password: 'tapp',
+  host: process.env.DB_HOST || 'localhost',
+  port: parseInt(process.env.DB_PORT) || 5432,
+  database: process.env.DB_NAME || 'tapp',
+  user: process.env.DB_USER || 'tapp',
+  password: process.env.DB_PASSWORD || 'tapp',
 };
 
 class PoolWrapper {

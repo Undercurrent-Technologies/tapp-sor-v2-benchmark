@@ -14,6 +14,7 @@
  *   node benchmark.js APT USDT 10000 --max-hops=3
  */
 
+require('dotenv').config();
 const { Client } = require('pg');
 const phase1 = require('./phase1-dfs-poc');
 const phase2Module = require('./yens-algorithm-poc');
@@ -23,11 +24,11 @@ const phase2Module = require('./yens-algorithm-poc');
 // ============================================================================
 
 const dbConfig = {
-  host: 'localhost',
-  port: 5432,
-  database: 'tapp',
-  user: 'tapp',
-  password: 'tapp',
+  host: process.env.DB_HOST || 'localhost',
+  port: parseInt(process.env.DB_PORT) || 5432,
+  database: process.env.DB_NAME || 'tapp',
+  user: process.env.DB_USER || 'tapp',
+  password: process.env.DB_PASSWORD || 'tapp',
 };
 
 // Command-line arguments
