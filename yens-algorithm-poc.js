@@ -33,7 +33,7 @@ const { Client } = require('pg');
 
 const dbConfig = {
   host: process.env.DB_HOST || 'localhost',
-  port: parseInt(process.env.DB_PORT) || 5432,
+  port: parseInt(process.env.DB_PORT) || 5433,
   database: process.env.DB_NAME || 'tapp',
   user: process.env.DB_USER || 'tapp',
   password: process.env.DB_PASSWORD || 'tapp',
@@ -735,6 +735,9 @@ async function main() {
     const sourceToken = Array.from(graph.nodes.values()).find(t => t.symbol === tokenFrom);
     const targetToken = Array.from(graph.nodes.values()).find(t => t.symbol === tokenTo);
     
+    console.log(sourceToken.addr);
+    console.log(targetToken.addr);
+
     if (!sourceToken) {
       console.log(`❌ Token ${tokenFrom} not found in pools!\n`);
       console.log('Available tokens:');

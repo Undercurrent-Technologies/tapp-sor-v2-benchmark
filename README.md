@@ -10,9 +10,10 @@ Proof of Concept implementation for Smart Order Routing Phase 2 using real pool 
 2. **Builds liquidity graph** from pools (tokens = nodes, pools = edges)
 3. **Implements Dijkstra's algorithm** to find shortest paths
 4. **Implements Yen's K-Shortest Paths** to find top K alternative routes
-5. **Implements A* Search** with target-aware heuristic (limited effectiveness)
-6. **Optimizes route splitting** using marginal analysis
-7. **Compares all algorithms** (DFS, A*, Yen's) in benchmark
+5. **Implements A* Search** with target-aware heuristic (production-optimized)
+6. **Implements Phase 2 water-filling** route splitting optimizer
+7. **Optimizes route splitting** using marginal rate equilibrium
+8. **Compares all algorithms** (DFS, A*, Yen's) in benchmark
 
 > 📝 **See A* investigations:**
 > - [POC-1: Phase 1 Mike Implementation](./docs/POC-1-ASTAR-PHASE1-MIKE-INVESTIGATION.md) - Bug analysis (finds 0 routes)
@@ -115,25 +116,31 @@ node benchmark.js DOGE BTC 10000 --max-hops=4 --k=10 --skip-astar
 
 ---
 
-### Option 2: Run Phase 1 (Current DFS Algorithm)
+### Option 2: Run Phase 1 A* (Production-Optimized Algorithm)
 
-Test the current implementation:
+Test the production A* implementation:
 
 ```bash
-# Run Phase 1 (DFS, max 3 hops)
-node phase1-dfs-poc.js DOGE BTC 10000 --max-hops=3
+# Run Phase 1 A* (max 3 hops, top 40 routes)
+node phase1-astar-mike.js APT USDC 10000 --max-hops=3
 
 # With verbose output
-node phase1-dfs-poc.js DOGE BTC 10000 --max-hops=3 --verbose
+node phase1-astar-mike.js APT USDC 10000 --max-hops=3 --verbose
+
+# With Phase 2 water-filling route splitting
+node phase1-astar-mike.js APT USDC 10000 --phase2
+
+# Large order with Phase 2 (see route splitting benefit)
+node phase1-astar-mike.js APT USDC 100000 --phase2
 ```
 
-**Expected**: Finds all routes (exhaustive search), picks best single route.
+**Expected**: Finds top K routes via A* search, selects best single route (Phase 1) or optimizes splitting across routes (Phase 2).
 
 ---
 
 ### Option 3: Run Phase 2 (Yen's Algorithm)
 
-Test the new implementation with 3-5 hops:
+Test the alternative Yen's implementation with 3-5 hops:
 
 ```bash
 # Run Phase 2 (Yen's, max 5 hops, K=5 routes)
@@ -180,11 +187,23 @@ node test-phase1-limits.js
 
 ### Parameters Reference
 
+**Phase 1 A* (`phase1-astar-mike.js`):**
 - **tokenFrom**: Source token symbol (e.g., `APT`, `USDC`, `WETH`)
 - **tokenTo**: Destination token symbol
 - **amount**: Amount to swap (in token units, not accounting for decimals)
-- **--k=N**: Number of routes to find (Phase 2 only, default: 5)
-- **--max-hops=N**: Maximum hops per route (default: Phase 1=2, Phase 2=5)
+- **--max-hops=N**: Maximum hops per route (default: 3)
+- **--top-k=N**: Number of routes to find (default: 40)
+- **--beam=N**: Beam width for search (default: 32)
+- **--gas-per-hop=N**: Gas cost per hop in USD (default: 0.01)
+- **--phase2**: Enable Phase 2 water-filling route splitting
+- **--verbose**: Show detailed logs for debugging
+
+**Phase 2 Yen's (`yens-algorithm-poc.js`):**
+- **tokenFrom**: Source token symbol
+- **tokenTo**: Destination token symbol
+- **amount**: Amount to swap
+- **--k=N**: Number of routes to find (default: 5)
+- **--max-hops=N**: Maximum hops per route (default: 5)
 - **--verbose**: Show detailed logs for debugging
 
 ---
