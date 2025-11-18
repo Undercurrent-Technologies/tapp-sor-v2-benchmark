@@ -1,20 +1,20 @@
 # SOR v2 Implementation Plan (Latest)
 
-- [x] **Task 1 – A* Routing Engine** ✅ Done (Kai)
+- [x] **Task 1 – A* Routing Engine** ✅ Done (Kai) - [PR-3245](https://github.com/Undercurrent-Technologies/tapp/pull/3245)
   - Route discovery now uses A* with capacity-aware weights to produce high-quality route matrices (3+ hops).
   - Feature flag: `feature_flag_sor_v2` in config.toml
 
-- [x] **Task 2 – Sampling + Interpolation for Orderbook** ✅ Done (Kai)
+- [x] **Task 2 – Sampling + Interpolation for Orderbook** ✅ Done (Kai) [PR-3284](https://github.com/Undercurrent-Technologies/tapp/pull/3284)
   - Replace chunking with sampling + interpolation approach for orderbook generation.
   - Works with 3+ hops (chunking only worked well with 2 hops).
   - `est_swap_with_smart_routing` generates orderbook with sampling + interpolation.
 
-- [x] **Task 3 – Reduce Orderbook Payload 75%** ✅ Done (Kai)
+- [x] **Task 3 – Reduce Orderbook Payload 75%** ✅ Done (Kai)  [PR-3245](https://github.com/Undercurrent-Technologies/tapp/pull/3245)
   - Bug fix: Reduce orderbook payload size by 75%.
   - Not directly related to SOR v2, but impacts performance with 3+ hops.
   - Optimizes network transfer and frontend processing.
 
-- [x] **Task 4.1 – Quick Demo: Route Splitting in Orderbook** ✅ Done (Kai)
+- [x] **Task 4.1 – Quick Demo: Route Splitting in Orderbook** ✅ Done (Kai) [route-splitting-branch](https://github.com/Undercurrent-Technologies/tapp/tree/feat-sor-v2-route-splitting-latest)
   - Quick implementation: Add route splitting for a few sample amounts in orderbook.
   - Generate `split_entries` (sampled Waterfill allocations) alongside traditional order book entries.
   - Purpose: Demonstrate why separate API is needed (CPU/RAM overhead when calculating splits for all entries).
